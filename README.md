@@ -3,7 +3,9 @@
 One KD-Tree to deskew them all, one KD-Tree to match them,
 one KD-Tree to close the loops and in the map bind them.
 
-Paper: 
+[paper (PDF)] (https://github.com/rvp-group/kd_slam2/blob/main/paper/kd_slam.pdf)
+[Zenodo DOI]  (https://doi.org/10.5281/zenodo.21095944)
+[Video]       (https://youtu.be/c-sCCt9hMmI)
 
 ---
 
@@ -132,6 +134,6 @@ SEQUENCES=spagna_train0 SLAM_CONF=configs/kd_slam_icp_handheld.conf scripts/kd_r
 
 See `scripts/kd_runme.sh` for the full variant and phase list.
 
-Videos: https://youtu.be/c-sCCt9hMmI
-        https://youtu.be/aNCdJOZsXM0
-        https://youtu.be/ANkpNj99f3A
+Other videos:
+[Video] (https://youtu.be/aNCdJOZsXM0)
+[Video] (https://youtu.be/ANkpNj99f3A)
