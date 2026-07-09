@@ -1,19 +1,6 @@
-FROM ubuntu:24.04
-
-ARG CUDA=0
+FROM nvidia/cuda:12.6.0-devel-ubuntu24.04 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
-
-# CUDA toolkit (only when CUDA=1)
-RUN if [ "$CUDA" = "1" ]; then \
-    apt-get update && apt-get install -y curl gnupg && \
-    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/3bf863cc.pub \
-        | gpg --dearmor -o /usr/share/keyrings/cuda-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/cuda-archive-keyring.gpg] \
-        https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/ /" \
-        > /etc/apt/sources.list.d/cuda.list && \
-    apt-get update && apt-get install -y cuda-toolkit-12-0; \
-fi
 
 # ROS2 Jazzy
 RUN apt-get update && apt-get install -y curl gnupg && \
@@ -56,47 +43,86 @@ RUN apt-get update && apt-get install -y \
     liblz4-dev \
     libzstd-dev \
     libqglviewer-dev-qt5 \
+    libgl1-mesa-dri \
+    mesa-utils \
     cmake \
     build-essential \
-    git
+    git \
+    emacs
 
-# clone srrg public deps
+# -------------------------------------------------------------------
+FROM base AS cpu
+
 WORKDIR /ws/src
-COPY docker/repos.yml /ws/repos.yml
-RUN vcs import < /ws/repos.yml
+RUN git clone -b ros2 https://gitlab.com/srrg-software/srrg_cmake_modules.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_core.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_solver.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_qgl_viewport.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_config_visualizer.git
 
-# build srrg deps first (cached layer -- independent of kd_slam2 source)
 WORKDIR /ws
-ARG CUDA
 RUN . /opt/ros/jazzy/setup.sh && \
     colcon build \
-        --cmake-args -DHAVE_CUDA=${CUDA} -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
+        --cmake-args -DHAVE_CUDA=OFF -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
         --packages-select \
-            srrg_cmake_modules \
-            srrg2_core_msgs \
-            srrg2_core \
-            srrg2_core_ros \
-            srrg2_qgl_viewport \
-            srrg2_solver \
-            srrg2_solver_extras
+            srrg_cmake_modules srrg2_core_msgs srrg2_core srrg2_core_ros \
+            srrg2_qgl_viewport srrg2_solver srrg2_solver_extras
 
-# clone kd_slam2 from public repo
 RUN git clone https://github.com/rvp-group/kd_slam2.git /tmp/kd_slam && \
     mv /tmp/kd_slam/kd_slam2 /ws/src/kd_slam2 && \
     mv /tmp/kd_slam/kd_slam2_msgs /ws/src/kd_slam2_msgs && \
+    mv /tmp/kd_slam/kd_eval_tools /ws/src/kd_eval_tools && \
     rm -rf /tmp/kd_slam
 
-# build kd_slam2
+RUN bash /ws/src/kd_slam2/kd_slam2/configs/make_cpu_confs.sh
+
 RUN . /opt/ros/jazzy/setup.sh && \
+    . /ws/install/setup.sh && \
     colcon build \
-        --cmake-args -DHAVE_CUDA=${CUDA} -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
-        --packages-select \
-            kd_slam2_msgs \
-            kd_slam2
+        --cmake-args -DHAVE_CUDA=OFF -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
+        --packages-select kd_slam2_msgs kd_slam2 kd_eval_tools
 
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
     echo "source /ws/install/setup.bash" >> /etc/bash.bashrc
 
-RUN apt-get update && apt-get install -y libgl1-mesa-dri mesa-utils
+WORKDIR /
+
+# -------------------------------------------------------------------
+FROM base AS cuda
+
+ENV CPATH=/usr/local/cuda/include
+ENV LIBRARY_PATH=/usr/local/cuda/lib64
+
+WORKDIR /ws/src
+RUN git clone -b ros2 https://gitlab.com/srrg-software/srrg_cmake_modules.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_core.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_solver.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_qgl_viewport.git && \
+    git clone -b ros2 https://gitlab.com/srrg-software/srrg2_config_visualizer.git
+
+WORKDIR /ws
+RUN . /opt/ros/jazzy/setup.sh && \
+    colcon build \
+        --cmake-args -DHAVE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major \
+            -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
+        --packages-select \
+            srrg_cmake_modules srrg2_core_msgs srrg2_core srrg2_core_ros \
+            srrg2_qgl_viewport srrg2_solver srrg2_solver_extras
+
+RUN git clone https://github.com/rvp-group/kd_slam2.git /tmp/kd_slam && \
+    mv /tmp/kd_slam/kd_slam2 /ws/src/kd_slam2 && \
+    mv /tmp/kd_slam/kd_slam2_msgs /ws/src/kd_slam2_msgs && \
+    mv /tmp/kd_slam/kd_eval_tools /ws/src/kd_eval_tools && \
+    rm -rf /tmp/kd_slam
+
+RUN . /opt/ros/jazzy/setup.sh && \
+    . /ws/install/setup.sh && \
+    colcon build \
+        --cmake-args -DHAVE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major \
+            -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 \
+        --packages-select kd_slam2_msgs kd_slam2 kd_eval_tools
+
+RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
+    echo "source /ws/install/setup.bash" >> /etc/bash.bashrc
 
 WORKDIR /
