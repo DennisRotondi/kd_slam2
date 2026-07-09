@@ -36,6 +36,7 @@ namespace kd_slam{
   using MultiViewICPFactor3D   = map::MultiViewICPFactor_<d3::NodeType>;
   using MultiViewCTICPFactor3D = map::MultiViewCTICPFactor_<d3::NodeType>;
   using VelocityPriorFactor3D  = slam::SLAM3D::SolverVelocityPriorFactor;
+  using ZeroVelMotionModel3D  = slam::ZeroVelMotionModel_<slam::TrackerProc_<map::MapOwner_<d3::NodeType>>>;
   using ConstVelMotionModel3D  = slam::ConstVelMotionModel_<slam::TrackerProc_<map::MapOwner_<d3::NodeType>>>;
   using IMUMotionModel3D        = slam::IMUMotionModel_<slam::TrackerProc_<map::MapOwner_<d3::NodeType>>>;
   using OdometryMotionModel3D  = slam::OdometryMotionModel_<slam::TrackerProc_<map::MapOwner_<d3::NodeType>>>;
@@ -56,6 +57,7 @@ namespace kd_slam{
     BOSS_REGISTER_CLASS(MultiViewCTICPFactor3D);
     BOSS_REGISTER_CLASS(VelocityPriorFactor3D);
     BOSS_REGISTER_CLASS(GravityPriorFactor);
+    BOSS_REGISTER_CLASS(ZeroVelMotionModel3D); 
     BOSS_REGISTER_CLASS(ConstVelMotionModel3D);
     BOSS_REGISTER_CLASS(IMUMotionModel3D);
     BOSS_REGISTER_CLASS(OdometryMotionModel3D);

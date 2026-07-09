@@ -5,7 +5,7 @@
 #include "kd_slam/map/map_align_utils_.h"
 #include "kd_slam/utils/runnable.h"
 #include "kd_slam/frame/frame_consumer_base.h"
-#include "kd_slam/motion_model/const_vel_motion_model_.h"
+#include "kd_slam/motion_model/zero_vel_motion_model_.h"
 
 namespace kd_slam {
   namespace slam {
@@ -43,7 +43,7 @@ namespace kd_slam {
       using EventFrameProcessed = typename Base_::EventFrameProcessed;
       using EventOdometry       = typename Base_::EventOdometry;
       using EventVelocity       = typename Base_::EventVelocity;
-      using MotionModelType     = ConstVelMotionModel_<TrackerProc_<Base_>>;
+      using MotionModelType     = ZeroVelMotionModel_<TrackerProc_<Base_>>;
       
       using Base_::_map;
       using Base_::pushEvent;

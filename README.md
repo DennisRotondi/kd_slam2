@@ -15,11 +15,13 @@ one KD-Tree to close the loops and in the map bind them.
 
 ```bash
 cd docker
-./build.sh          # CPU only
-./build.sh --cuda   # with CUDA
+./build.sh          # CPU image  (Dockerfile)
+./build.sh --cuda   # CUDA image (Dockerfile.cuda)
 ```
 
 Produces image `kd_slam2:cpu` or `kd_slam2:cuda`.
+The CUDA image is based on `nvidia/cuda:12.6.0-devel-ubuntu24.04` and requires
+the NVIDIA Container Toolkit on the host.
 
 ---
 

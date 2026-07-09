@@ -31,6 +31,7 @@ namespace kd_slam{
   using MultiViewICPFactor2D   = map::MultiViewICPFactor_<d2::NodeType>;
   using MultiViewCTICPFactor2D = map::MultiViewCTICPFactor_<d2::NodeType>;
   using VelocityPriorFactor2D  = slam::SLAM2D::SolverVelocityPriorFactor;
+  using ZeroVelMotionModel2D  = slam::ZeroVelMotionModel_<slam::TrackerProc_<map::MapOwner_<d2::NodeType>>>;
   using ConstVelMotionModel2D  = slam::ConstVelMotionModel_<slam::TrackerProc_<map::MapOwner_<d2::NodeType>>>;
   using IMUMotionModel2D       = slam::IMUMotionModel_<slam::TrackerProc_<map::MapOwner_<d2::NodeType>>>;
   template struct slam::ConstVelMotionModel_<slam::TrackerProc_<map::MapOwner_<d2::NodeType>>>;
@@ -48,6 +49,7 @@ namespace kd_slam{
     BOSS_REGISTER_CLASS(MultiViewICPFactor2D);
     BOSS_REGISTER_CLASS(MultiViewCTICPFactor2D);
     BOSS_REGISTER_CLASS(VelocityPriorFactor2D);
+    BOSS_REGISTER_CLASS(ZeroVelMotionModel2D);
     BOSS_REGISTER_CLASS(ConstVelMotionModel2D);
     BOSS_REGISTER_CLASS(IMUMotionModel2D);
   }
