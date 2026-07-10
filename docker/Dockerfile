@@ -48,44 +48,47 @@ RUN apt-get update && apt-get install -y \
     cmake \
     build-essential \
     git \
+    time \
     emacs
 
 # -------------------------------------------------------------------
-FROM base AS cpu
+FROM base AS srrg
 
-RUN mkdir -p /ws/src
-WORKDIR /ws/src
-RUN git clone https://github.com/rvp-group/kd_slam2.git && \
-    bash kd_slam2/scripts/srrg_pull.sh
-
+COPY docker/repos.yml /tmp/repos.yml
+RUN mkdir -p /ws/src && cd /ws/src && vcs import < /tmp/repos.yml
 WORKDIR /ws
 RUN . /opt/ros/jazzy/setup.sh && \
+    colcon build --cmake-args -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3 && \
+    rm -rf /ws/src /ws/build /tmp/repos.yml
+
+# -------------------------------------------------------------------
+FROM srrg AS cpu
+
+RUN mkdir -p /ws/src && cd /ws/src && \
+    git clone https://github.com/rvp-group/kd_slam2.git
+WORKDIR /ws
+RUN . /opt/ros/jazzy/setup.sh && \
+    . /ws/install/local_setup.sh && \
     colcon build \
         --cmake-args -DHAVE_CUDA=OFF -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3
-
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
     echo "source /ws/src/kd_slam2/scripts/kd_slam_setup.bash" >> /etc/bash.bashrc
-
 WORKDIR /
 
 # -------------------------------------------------------------------
-FROM base AS cuda
+FROM srrg AS cuda
 
 ENV CPATH=/usr/local/cuda/include
 ENV LIBRARY_PATH=/usr/local/cuda/lib64
 
-RUN mkdir -p /ws/src
-WORKDIR /ws/src
-RUN git clone https://github.com/rvp-group/kd_slam2.git && \
-    bash kd_slam2/scripts/srrg_pull.sh
-
+RUN mkdir -p /ws/src && cd /ws/src && \
+    git clone https://github.com/rvp-group/kd_slam2.git
 WORKDIR /ws
 RUN . /opt/ros/jazzy/setup.sh && \
+    . /ws/install/local_setup.sh && \
     colcon build \
         --cmake-args -DHAVE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=all-major \
             -DEIGEN3_INCLUDE_DIR=/usr/include/eigen3
-
 RUN echo "source /opt/ros/jazzy/setup.bash" >> /etc/bash.bashrc && \
     echo "source /ws/src/kd_slam2/scripts/kd_slam_setup.bash" >> /etc/bash.bashrc
-
 WORKDIR /

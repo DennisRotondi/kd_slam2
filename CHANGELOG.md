@@ -5,7 +5,7 @@
 ### Algo
 - ZeroVelMotionModel: new base class for the motion model hierarchy (zero-velocity prior)
 - 2-step loop closure validation: ICP floating->match_kf, then ICP kf->match_kf
-- Loop factors added based on inliers only
+- Loop factors added based on inliers only (significantly improves CT-ICP results)
 - Preliminary cure pass (map repair, experimental)
 - Bug fix in map load (srrg2 solver: _last_graph_id + addFactor)
 - Class decoupling: map_owner->optimizer_proc->bundler_proc->bundler and map_owner->tracker->optimizer->slam
@@ -21,4 +21,6 @@
 - make_cpu_confs.sh: generate CPU configs from CUDA ones
 - README: Quick Guide added (tools, viewer controls, 6-step pipeline)
 - kd_runme.sh, run_all.sh: hardcoded paths replaced with KD_SLAM_* env vars
-- Docker: contextless build, layer cache optimized, kd_eval_tools added
+- Docker: multi-stage Dockerfile (base/srrg/cpu/cuda targets), single build.sh, run.sh for interactive sessions
+- Docker: kd_slam_setup.bash auto-sourced on startup, /data mount for datasets
+- Docker: CUDA image requires host driver >= 560 and nvidia-container-toolkit

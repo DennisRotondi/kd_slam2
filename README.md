@@ -3,24 +3,62 @@
 One KD-Tree to deskew them all, one KD-Tree to match them,
 one KD-Tree to close the loops and in the map bind them.
 
-[paper (PDF)] (https://github.com/rvp-group/kd_slam2/blob/main/paper/kd_slam.pdf)
+[paper (PDF)](https://github.com/rvp-group/kd_slam2/blob/main/paper/kd_slam.pdf)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21095943.svg)](https://doi.org/10.5281/zenodo.21095943)
 
-[Video]       (https://youtu.be/c-sCCt9hMmI)
+[Video](https://youtu.be/c-sCCt9hMmI)
 
 ---
 
-## Build (Docker -- easiest)
+## Build (native, ROS2 Jazzy -- recommended)
+
+**System dependencies**
 
 ```bash
+apt install libeigen3-dev libopencv-dev libsuitesparse-dev \
+            libglfw3-dev libgl-dev freeglut3-dev \
+            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
+            liblz4-dev libzstd-dev libqglviewer-dev-qt5 python3-vcstool \
+            python3-colcon-common-extensions
+```
+
+**Workspace setup**
+
+```bash
+mkdir -p ~/ws/src
+cd ~/ws/src
+git clone https://github.com/rvp-group/kd_slam2
+./kd_slam2/scripts/srrg_pull.sh
+```
+
+**Build (Native)**
+
+```bash
+cd ~/ws
+source /opt/ros/jazzy/setup.bash
+colcon build --cmake-args -DHAVE_CUDA=OFF
+```
+
+Set `-DHAVE_CUDA=ON` for CUDA support.
+
+
+---
+
+## Build (Docker)
+
+```bash
+docker/build.sh --srrg   # shared base (build once)
 docker/build.sh          # CPU image
 docker/build.sh --cuda   # CUDA image
 ```
 
-Both images are based on `nvidia/cuda:12.6.0-devel-ubuntu24.04`.
+All images are based on `nvidia/cuda:12.6.0-devel-ubuntu24.04`.
+The `--srrg` stage builds the shared srrg dependencies and is cached; rebuild
+it only when `docker/repos.yml` changes.
 The CPU image runs on any x86 machine.
 The CUDA image requires the NVIDIA Container Toolkit on the host.
+On docker the gui will be slower due to the lack of hardware acceleration.
 
 **Run**
 
@@ -33,58 +71,13 @@ Your data (`$KD_SLAM_TEST`) is mounted as `/data` inside the container.
 Results written to `/data` land back on the host.
 `kd_slam_setup.bash` is sourced automatically on startup.
 
-The CUDA variant requires CDI support on the host:
+The CUDA variant requires the NVIDIA Container Toolkit on the host (once per host):
 
 ```bash
-# enable CDI in /etc/docker/daemon.json
-{ "features": { "cdi": true } }
-
-# generate CDI spec (once per host, as root)
-sudo bash docker/setup_cdi.sh
+sudo apt install nvidia-container-toolkit
+sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 ```
-
----
-
-## Build (native, ROS2 Jazzy)
-
-**System dependencies**
-
-```bash
-apt install libeigen3-dev libopencv-dev libsuitesparse-dev \
-            libglfw3-dev libgl-dev freeglut3-dev \
-            libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev \
-            liblz4-dev libzstd-dev libqglviewer-dev-qt5 python3-vcstool
-```
-
-**Workspace setup**
-
-```bash
-mkdir -p ~/ws/src
-cd ~/ws/src
-git clone https://github.com/rvp-group/kd_slam2
-./kd_slam2/scripts/srrg_pull.sh
-```
-
-**Build**
-
-```bash
-cd ~/ws
-source /opt/ros/jazzy/setup.bash
-colcon build --cmake-args -DHAVE_CUDA=0
-```
-
-Set `-DHAVE_CUDA=1` for CUDA support.
-
-The default configs use CUDA ICP/CT-ICP types. If building without CUDA, generate
-CPU variants with:
-
-```bash
-kd_slam2/configs/make_cpu_confs.sh
-```
-
-This produces `*_cpu.conf` copies with `ICPCPU3D`/`CTICPCPU3D` in place of the CUDA types.
-
 
 ---
 
@@ -111,7 +104,8 @@ is a visual IDE for the BOSS/srrg framework. It loads shared libraries at
 runtime (listed in `dl.conf`), discovers all registered configurables, and lets
 you compose processing pipelines graphically: instantiate modules, wire inputs
 to outputs, set parameters, and save the result as a `.conf` file -- without
-touching BOSS JSON by hand. The configs in `kd_slam2/configs/` were built with
+touching BOSS JSON by hand. Don't do that.
+The configs in `kd_slam2/configs/` were built with
 it and can be opened and modified from it.
 
 After sourcing the setup script, launch it with:
@@ -157,7 +151,18 @@ source ~/kd_slam_setup.bash
 > Download and unpack so that `$KD_SLAM_TEST/vbr/bags/<seq>/` contains the tree bag
 > and `$KD_SLAM_TEST/vbr/gt_files/<seq>_gt.tum` contains the ground truth.
 
-**3. Run SLAM**
+**3. Prepare the configs**
+The default configs use CUDA ICP/CT-ICP types. If you want to run the pipeline on CPU, generate
+the CPU variants with:
+
+```bash
+$KD_SLAM_CONFIGS/make_cpu_confs.sh
+```
+This produces `*_cpu.conf` copies with `ICPCPU3D`/`CTICPCPU3D` in place of the CUDA types.
+
+Alternatively you can load the pipeline with confviz and rewire the types.
+
+**4. Run SLAM**
 
 ```bash
 kd_slam \
@@ -172,7 +177,7 @@ If you use a drive dataset (ciampino, campus) use kd_slam_icp_drive.conf
 Add `-V 2` to open the viewer.
 Outputs: `<prefix>_map.boss` (map), `<prefix>.kf` (keyframes), `<prefix>.tum` (trajectory).
 
-**4. Run bundle adjustment**
+**5. Run bundle adjustment**
 
 ```bash
 kd_bundler \
@@ -185,7 +190,7 @@ kd_bundler \
 Use `-cb` instead of `-b` for CT-ICP bundle adjustment.
 Add `-V 2` to open the viewer (use `B`/`C` to trigger passes manually).
 
-**5. Extract trajectory from the bundled map**
+**6. Extract trajectory from the bundled map**
 
 ```bash
 kd_map_replay \
@@ -194,7 +199,7 @@ kd_map_replay \
     -ot $KD_SLAM_TEST/results/<seq>/<seq>_icp_ba.tum
 ```
 
-**6. Evaluate**
+**7. Evaluate**
 
 ```bash
 traj_compare \

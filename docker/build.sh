@@ -9,6 +9,8 @@ NO_CACHE=""
 while [[ $# -gt 0 ]]; do
   case $1 in
     --base)     TARGET="base"; shift ;;
+    --srrg)     TARGET="srrg"; shift ;;
+    --cpu)      TARGET="cpu";  shift ;;
     --cuda)     TARGET="cuda"; shift ;;
     --no-cache) NO_CACHE="--no-cache"; shift ;;
     *) echo "Unknown option: $1"; exit 1 ;;

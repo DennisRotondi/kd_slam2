@@ -13,7 +13,6 @@ find_package(ament_cmake REQUIRED)
 find_package(srrg_cmake_modules REQUIRED)
 include(${srrg_cmake_modules_INCLUDE_DIRS}/CMakeCompileOptions.txt)
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
 
 find_package(Eigen3 REQUIRED)
 find_package(Threads REQUIRED)
